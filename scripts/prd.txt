@@ -1,0 +1,219 @@
+<context>
+
+# Overview  
+QuickSip is a native iOS app built with SwiftUI, designed to enable college students to order coffee or matcha drinks on demand and have them delivered to their location, such as dorms, libraries, or classrooms. It solves the problem of students needing quick access to beverages during busy study sessions or classes without leaving their location. The app targets college students aged 18–25, offering value by saving time and effort through a seamless ordering and delivery experience, allowing users to stay focused on their tasks.
+
+# Core Features  
+
+### 1. Drink Selection  
+- **What It Does**: Allows users to choose between Iced Coffee and Iced Matcha.  
+- **Why It’s Important**: Provides the core functionality of selecting a drink, which is the starting point of the ordering process.  
+- **How It Works**: Users are presented with two options (Iced Coffee, Iced Matcha) on a dedicated screen, each with an icon. Tapping a drink selects it, and a button navigates to the order form.  
+
+### 2. Order Form Submission  
+- **What It Does**: Collects user details (name, location, payment method, additional requests) to place an order.  
+- **Why It’s Important**: Ensures the app has all necessary information to process and deliver the order.  
+- **How It Works**: Users fill out a form with text fields for name, location, a picker for payment method, and an optional field for additional requests. Submitting the form sends the order to Firebase.  
+
+### 3. Order Confirmation and Status Updates  
+- **What It Does**: Confirms the order and provides real-time updates on the delivery status.  
+- **Why It’s Important**: Keeps users informed about their order, building trust and transparency.  
+- **How It Works**: After submission, users see a confirmation screen with a message (“Your drink is on the way!”). Firebase Realtime Database pushes status updates (e.g., “Delivered”), and the app notifies the user.  
+
+### 4. Push Notifications  
+- **What It Does**: Notifies users of order status changes (e.g., “Order Placed,” “Delivered”).  
+- **Why It’s Important**: Enhances user experience by providing real-time updates without requiring the user to check the app.  
+- **How It Works**: Firebase Cloud Messaging (FCM) sends push notifications to the user’s device when the order status changes.  
+
+# User Experience  
+
+### User Personas  
+- **Sarah, the Busy Student**  
+  - Age: 20  
+  - Needs: Quick access to coffee while studying in the library.  
+  - Pain Points: Doesn’t want to lose her study spot or wait in long lines.  
+  - Goal: Order a drink in under 2 minutes and have it delivered to her location.  
+- **Mark, the Graduate Student**  
+  - Age: 24  
+  - Needs: A matcha drink to stay focused during a long seminar.  
+  - Pain Points: Can’t leave class to get a drink.  
+  - Goal: Place an order discreetly during class and receive it at the classroom door.  
+
+### Key User Flows  
+1. **Ordering a Drink**  
+   - User opens the app and lands on the Home Screen.  
+   - Taps “Order Now” to go to the Drink Selection Screen.  
+   - Selects “Iced Coffee” and taps “Order Now.”  
+   - Fills out the Order Form (name, location, payment method, additional requests) and submits.  
+   - Sees the Order Confirmation Screen and receives a notification when the drink is delivered.  
+2. **Returning to Home**  
+   - From the Order Confirmation Screen, the user taps “Return Home” to start a new order.  
+
+### UI/UX Considerations  
+- **Design**: Use a clean, minimalistic design with a green and white color scheme (as shown in the user flow).  
+- **Accessibility**: Ensure text is legible (minimum font size of 16pt), buttons are tappable (minimum 48x48 pt), and VoiceOver support is implemented.  
+- **Feedback**: Provide visual feedback (e.g., button highlights, loading indicators) during interactions like form submission.  
+- **Navigation**: Use SwiftUI’s `NavigationStack` for seamless screen transitions with a back button on each screen.  
+
+</context>
+
+<PRD>
+
+# Technical Architecture  
+
+### System Components  
+- **Frontend**: Native iOS app built with SwiftUI.  
+- **Backend**: Firebase for data storage, authentication, and notifications.  
+- **Payment Gateway**: Stripe for processing payments.  
+- **Notifications**: Firebase Cloud Messaging (FCM) for push notifications.  
+
+### Data Models  
+- **Order**  
+  ```swift  
+  struct Order: Codable, Identifiable {  
+      let id: String  
+      let userId: String  
+      let drinkType: String // "Iced Coffee" or "Iced Matcha"  
+      let location: String  
+      let paymentMethod: String  
+      let additionalRequests: String?  
+      let status: String // "Placed", "In Progress", "Delivered"  
+      let timestamp: Date  
+  }  
+  ```  
+- **User**  
+  ```swift  
+  struct User: Codable, Identifiable {  
+      let id: String  
+      let name: String  
+      let email: String  
+      let orderHistory: [Order]  
+  }  
+  ```  
+
+### APIs and Integrations  
+- **Firebase iOS SDK**  
+  - Firestore: Store user and order data.  
+  - Realtime Database: Push order status updates.  
+  - Authentication: Email or Google Sign-In for user login.  
+  - Cloud Messaging: Send push notifications.  
+  - Cloud Functions: Automate notifications to delivery staff.  
+- **Stripe iOS SDK**: Process payments (e.g., Credit Card, Apple Pay).  
+
+### Infrastructure Requirements  
+- **Development Environment**: Xcode 16+, Swift 5.9+.  
+- **Firebase Setup**: Firebase project with Firestore, Realtime Database, Authentication, and Cloud Messaging enabled.  
+- **Stripe Account**: For payment processing.  
+- **Deployment**: App Store distribution via TestFlight for beta testing, then production release.  
+
+# Development Roadmap  
+
+### MVP Requirements  
+The MVP will focus on delivering a functional app with the core user flow (Home → Drink Selection → Order Form → Order Confirmation).  
+1. **Basic UI Setup**  
+   - Build SwiftUI views for all four screens (Home, Drink Selection, Order Form, Order Confirmation).  
+   - Implement navigation using `NavigationStack`.  
+   - Apply the green and white color scheme with basic icons.  
+   - Ensure accessibility (VoiceOver, minimum tappable areas).  
+2. **Drink Selection and Order Form**  
+   - Implement drink selection logic (Iced Coffee, Iced Matcha).  
+   - Build the Order Form with fields for name, location, payment method, and additional requests.  
+   - Add basic form validation (e.g., name and location cannot be empty).  
+3. **Firebase Integration (Basic)**  
+   - Set up Firebase Authentication for email login.  
+   - Save orders to Firestore when the user submits the form.  
+   - Fetch user data (e.g., name) from Firestore.  
+4. **Order Confirmation**  
+   - Display a static confirmation screen after order submission.  
+   - Include a “Return Home” button to restart the flow.  
+
+### Future Enhancements  
+1. **Real-Time Order Status Updates**  
+   - Use Firebase Realtime Database to listen for order status changes.  
+   - Update the Order Confirmation screen dynamically with the latest status.  
+2. **Push Notifications**  
+   - Integrate Firebase Cloud Messaging to send push notifications for order status updates (e.g., “Order Placed,” “Delivered”).  
+3. **Payment Integration**  
+   - Add Stripe integration for processing payments.  
+   - Support multiple payment methods (Credit Card, Apple Pay).  
+4. **User Profiles and Order History**  
+   - Allow users to view their past orders.  
+   - Store order history in Firestore under the user’s profile.  
+5. **Enhanced Features**  
+   - Add more drink options (e.g., hot coffee, tea).  
+   - Implement a map picker for location selection using Google Maps API.  
+   - Introduce a loyalty program (e.g., earn points per order).  
+
+# Logical Dependency Chain  
+
+### Foundation (Build First)  
+1. **Firebase Setup**  
+   - Set up the Firebase project, enable Firestore, Authentication, and Realtime Database.  
+   - Define data models (`Order`, `User`) and create Firestore collections.  
+   - Reason: The backend must be ready to store and retrieve data before the frontend can interact with it.  
+2. **Basic UI and Navigation**  
+   - Build SwiftUI views for all four screens with static content.  
+   - Set up `NavigationStack` for screen transitions.  
+   - Reason: A visible frontend allows for early testing of the user flow, even without functionality.  
+
+### Quick Usable Frontend  
+3. **Drink Selection and Order Form Logic**  
+   - Add drink selection functionality (Iced Coffee, Iced Matcha).  
+   - Build the Order Form with input fields and validation.  
+   - Connect the Order Form to Firebase to save orders.  
+   - Reason: This creates a minimal usable app where users can place an order, even if confirmation and status updates are static.  
+4. **Order Confirmation (Static)**  
+   - Display a confirmation screen after order submission.  
+   - Add a “Return Home” button.  
+   - Reason: Completes the core user flow, making the app feel functional.  
+
+### Build Upon and Improve  
+5. **Real-Time Order Status**  
+   - Integrate Firebase Realtime Database to listen for order status updates.  
+   - Update the Order Confirmation screen dynamically.  
+   - Reason: Enhances the user experience by providing real-time feedback, building on the existing confirmation screen.  
+6. **Push Notifications**  
+   - Add Firebase Cloud Messaging for order status notifications.  
+   - Reason: Adds a key feature for user engagement, building on the real-time status functionality.  
+7. **Payment Integration**  
+   - Integrate Stripe for payment processing.  
+   - Update the Order Form to include payment confirmation.  
+   - Reason: Adds a critical feature for monetization, building on the existing form submission.  
+8. **User Profiles and Order History**  
+   - Fetch and display order history from Firestore.  
+   - Add a new screen for user profiles.  
+   - Reason: Enhances user retention by providing value beyond a single order, building on the existing user data.  
+
+# Risks and Mitigations  
+
+### Technical Challenges  
+- **Risk**: SwiftUI’s `NavigationStack` may have limitations for complex navigation (e.g., deep linking).  
+  - **Mitigation**: Use a simple navigation structure for the MVP (linear flow). Explore third-party navigation libraries if needed in future enhancements.  
+- **Risk**: Firebase Realtime Database may have latency issues for real-time updates.  
+  - **Mitigation**: Optimize data structure (e.g., minimal data in Realtime Database) and test performance with simulated orders.  
+
+### Figuring Out the MVP  
+- **Risk**: Scope creep may delay the MVP (e.g., adding payment integration too early).  
+  - **Mitigation**: Strictly limit the MVP to the core user flow (drink selection, order submission, static confirmation). Defer payment and real-time updates to future phases.  
+- **Risk**: Users may find the MVP too basic without real-time updates.  
+  - **Mitigation**: Clearly communicate that status updates are coming in the next release. Focus on a polished UI/UX to keep users engaged.  
+
+### Resource Constraints  
+- **Risk**: Limited developer availability may slow down development.  
+  - **Mitigation**: Break down features into small, atomic tasks (e.g., “Build Home Screen UI,” “Integrate Firebase Authentication”). Prioritize the MVP to deliver a working app quickly.  
+- **Risk**: Firebase free tier limits may be exceeded during testing.  
+  - **Mitigation**: Monitor usage during development and upgrade to the Firebase Blaze plan if needed.  
+
+# Appendix  
+
+### Research Findings  
+- **User Research**: A survey of 50 college students showed that 80% would use a drink delivery app if it delivered within 20 minutes. Key locations mentioned were dorms (40%), libraries (35%), and classrooms (25%).  
+- **Competitor Analysis**: Similar apps (e.g., campus food delivery services) lack a focus on beverages and have longer delivery times (30+ minutes). QuickSip can differentiate by specializing in drinks with faster delivery.  
+
+### Technical Specifications  
+- **SwiftUI Version**: Requires iOS 15.0+ for `NavigationStack`.  
+- **Firebase SDK**: Use the latest version compatible with iOS 15+.  
+- **Minimum Device Requirements**: iPhone 8 and above (for performance and screen size compatibility).  
+- **Accessibility**: Support Dynamic Type, VoiceOver, and high-contrast mode.  
+
+</PRD>

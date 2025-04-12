@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>221310974640-ei2tl6uove30dos30e6oe8ovgon5j3to.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.221310974640-ei2tl6uove30dos30e6oe8ovgon5j3to</string>
+	<key>API_KEY</key>
+	<string>AIzaSyDXWZ5mWFpiSWrIXEWXpkrJuLeXB8HlDyc</string>
+	<key>GCM_SENDER_ID</key>
+	<string>221310974640</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.quicksip.quicksip</string>
+	<key>PROJECT_ID</key>
+	<string>quicksip-1a09e</string>
+	<key>STORAGE_BUCKET</key>
+	<string>quicksip-1a09e.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:221310974640:ios:ccd300de57f36de04c1975</string>
+	<key>DATABASE_URL</key>
+	<string>https://quicksip-1a09e-default-rtdb.firebaseio.com</string>
+</dict>
+</plist>
