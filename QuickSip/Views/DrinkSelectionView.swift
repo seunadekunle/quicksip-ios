@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit // Added for UIImpactFeedbackGenerator
 
 // Drink Type Enum
 enum DrinkType: String, CaseIterable, Identifiable {
@@ -91,7 +92,7 @@ struct DrinkSelectionView: View {
             .accessibilityHint(selectedDrink == nil ? "Select a drink first" : "Tap to continue with your \(selectedDrink?.rawValue ?? "") order")
             
             NavigationLink(
-                destination: Text("Order Form for \(selectedDrink?.rawValue ?? "")"),
+                destination: selectedDrink.map { OrderFormView(selectedDrink: $0) },
                 isActive: $showingOrderForm
             ) {
                 EmptyView()

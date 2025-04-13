@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var authViewModel = AuthenticationViewModel()
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
     
     var body: some View {
         // Display either the home screen or login based on authentication state
@@ -21,6 +21,7 @@ struct ContentView: View {
                     }
                     .tabItem {
                         Label("Home", systemImage: "house")
+                            .navigationTitle("Home")
                     }
                     
                     NavigationStack {
@@ -33,6 +34,7 @@ struct ContentView: View {
                     
                     NavigationStack {
                         ProfileView()
+                            .navigationTitle("Profile")
                     }
                     .tabItem {
                         Label("Profile", systemImage: "person")
@@ -49,6 +51,7 @@ struct ContentView: View {
             } else {
                 // Authentication screen
                 LoginView()
+                    .environmentObject(authViewModel)
             }
         }
         .preferredColorScheme(.light) // Additional enforcement of light mode
@@ -57,4 +60,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(AuthenticationViewModel())
 }

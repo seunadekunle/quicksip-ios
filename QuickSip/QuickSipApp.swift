@@ -28,8 +28,10 @@ struct QuickSipApp: App {
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-        FirebaseApp.configure()
-        
+    let providerFactory = AppCheckDebugProviderFactory()
+    AppCheck.setAppCheckProviderFactory(providerFactory)
+
+    FirebaseApp.configure()        
         // Enforce light mode at UIKit level
         if #available(iOS 15.0, *) {
             let scenes = UIApplication.shared.connectedScenes

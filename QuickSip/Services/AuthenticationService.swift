@@ -22,12 +22,38 @@ class AuthenticationService: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     private let firebaseService = FirebaseService.shared
+    private var authStateListener: AuthStateDidChangeListenerHandle?
     
     private init() {
+        setupAuthStateListener()
+    }
+    
+    deinit {
+        // Remove auth state listener when service is deallocated
+        if let handle = authStateListener {
+            Auth.auth().removeStateDidChangeListener(handle)
+        }
+    }
+    
+    private func setupAuthStateListener() {
+        // Ensure we remove any existing listener before adding a new one
+        if let handle = authStateListener {
+            Auth.auth().removeStateDidChangeListener(handle)
+        }
+        
         // Listen for authentication state changes
-        Auth.auth().addStateDidChangeListener { [weak self] (_, user) in
-            self?.user = user
-            self?.isAuthenticated = user != nil
+        authStateListener = Auth.auth().addStateDidChangeListener { [weak self] (_, user) in
+            DispatchQueue.main.async {
+                self?.user = user
+                self?.isAuthenticated = user != nil
+                
+                if user != nil {
+                    // User is authenticated, log status for debugging
+                    print("User is authenticated: \(user?.uid ?? "unknown")")
+                } else {
+                    print("No authenticated user")
+                }
+            }
         }
     }
     
