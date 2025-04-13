@@ -8,17 +8,18 @@
 import SwiftUI
 
 struct LoginView: View {
-    @StateObject private var viewModel = AuthenticationViewModel()
+    @EnvironmentObject var viewModel: AuthenticationViewModel
     
     var body: some View {
         VStack(spacing: 30) {
+            Spacer()
             // Logo
             Image(systemName: "cup.and.saucer.fill")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 80, height: 80)
                 .foregroundColor(AppColors.primary)
-                .padding(.top, 50)
+                .accessibilityLabel("QuickSip App Logo")
             
             Text("QuickSip")
                 .font(.system(size: 28, weight: .bold))
@@ -27,8 +28,7 @@ struct LoginView: View {
             Text("Welcome to QuickSip")
                 .font(.title3)
                 .fontWeight(.medium)
-                .padding(.top, 10)
-
+                .padding(.top, 10) 
             
             // Error Message
             if let errorMessage = viewModel.errorMessage {
@@ -68,7 +68,7 @@ struct LoginView: View {
             .disabled(viewModel.isLoading)
             .padding(.bottom, 50)
             
-//            Spacer()
+            Spacer()
         }
         .padding()
         .background(AppColors.background)
@@ -95,15 +95,10 @@ struct LoginView: View {
                 }
             }
         )
-        .onChange(of: viewModel.isAuthenticated) { isAuthenticated in
-            if isAuthenticated {
-                // User successfully authenticated
-                // You can add navigation logic here if needed
-            }
-        }
     }
 }
 
 #Preview {
     LoginView()
+        .environmentObject(AuthenticationViewModel())
 } 

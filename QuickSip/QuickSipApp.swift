@@ -21,6 +21,7 @@ struct QuickSipApp: App {
                 .onOpenURL { url in
                     GIDSignIn.sharedInstance.handle(url)
                 }
+                .preferredColorScheme(.light)
         }
     }
 }
@@ -28,6 +29,23 @@ struct QuickSipApp: App {
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         FirebaseApp.configure()
+        
+        // Enforce light mode at UIKit level
+        if #available(iOS 15.0, *) {
+            let scenes = UIApplication.shared.connectedScenes
+            scenes.forEach { scene in
+                if let windowScene = scene as? UIWindowScene {
+                    windowScene.windows.forEach { window in
+                        window.overrideUserInterfaceStyle = .light
+                    }
+                }
+            }
+        } else {
+            UIApplication.shared.windows.forEach { window in
+                window.overrideUserInterfaceStyle = .light
+            }
+        }
+        
         return true
     }
     

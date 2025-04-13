@@ -39,11 +39,19 @@ struct ContentView: View {
                     }
                 }
                 .accentColor(AppColors.primary)
+                .onAppear {
+                    // Ensure tab bar appearance is consistent with light mode
+                    let appearance = UITabBarAppearance()
+                    appearance.configureWithOpaqueBackground()
+                    UITabBar.appearance().standardAppearance = appearance
+                    UITabBar.appearance().scrollEdgeAppearance = appearance
+                }
             } else {
                 // Authentication screen
                 LoginView()
             }
         }
+        .preferredColorScheme(.light) // Additional enforcement of light mode
     }
 }
 
