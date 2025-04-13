@@ -38,6 +38,7 @@ enum DrinkType: String, CaseIterable, Identifiable {
 struct DrinkSelectionView: View {
     @State private var selectedDrink: DrinkType?
     @State private var showingOrderForm = false
+    @Environment(\.presentationMode) private var presentationMode
     
     var body: some View {
         VStack(spacing: 25) {
@@ -100,6 +101,31 @@ struct DrinkSelectionView: View {
         }
         .navigationTitle("Drink Selection")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // Set up notification observer to dismiss view when requested
+            NotificationCenter.default.addObserver(
+                forName: Notification.Name("DismissToRootView"),
+                object: nil,
+                queue: .main) { notification in
+                    // Check if the notification was from the OrderConfirmation view
+                    let shouldForce = (notification.userInfo?["force"] as? Bool) ?? false
+                    let source = (notification.userInfo?["source"] as? String) ?? ""
+                    
+                    // If forced or from OrderConfirmation, dismiss this view
+                    if shouldForce || source == "OrderConfirmation" {
+                        // Dismiss this view when the notification is received
+                        self.presentationMode.wrappedValue.dismiss()
+                    }
+                }
+        }
+        .onDisappear {
+            // Remove notification observer
+            NotificationCenter.default.removeObserver(
+                self,
+                name: Notification.Name("DismissToRootView"),
+                object: nil
+            )
+        }
     }
 }
 

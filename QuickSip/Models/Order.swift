@@ -12,6 +12,11 @@ struct Order: Codable, Identifiable {
     let id: String
     let userId: String
     let drinkType: String // "Iced Coffee" or "Iced Matcha"
+    let size: String
+    let milk: String
+    let flavor: String
+    let isIced: Bool
+    let price: Double
     let location: String
     let paymentMethod: String
     let additionalRequests: String?
@@ -31,10 +36,16 @@ struct Order: Codable, Identifiable {
     }
     
     // Convenience initializer for creating a new order
-    init(userId: String, drinkType: String, location: String, paymentMethod: String, additionalRequests: String? = nil) {
+    init(userId: String, drinkType: String, size: String = "Medium", milk: String = "", flavor: String = "", 
+         isIced: Bool = true, price: Double = 4.99, location: String, paymentMethod: String, additionalRequests: String? = nil) {
         self.id = UUID().uuidString
         self.userId = userId
         self.drinkType = drinkType
+        self.size = size
+        self.milk = milk
+        self.flavor = flavor
+        self.isIced = isIced
+        self.price = price
         self.location = location
         self.paymentMethod = paymentMethod
         self.additionalRequests = additionalRequests
@@ -57,6 +68,11 @@ struct Order: Codable, Identifiable {
         self.id = document.documentID
         self.userId = userId
         self.drinkType = drinkType
+        self.size = data["size"] as? String ?? "Medium"
+        self.milk = data["milk"] as? String ?? ""
+        self.flavor = data["flavor"] as? String ?? ""
+        self.isIced = data["isIced"] as? Bool ?? true
+        self.price = data["price"] as? Double ?? 4.99
         self.location = location
         self.paymentMethod = paymentMethod
         self.additionalRequests = data["additionalRequests"] as? String
@@ -68,6 +84,11 @@ struct Order: Codable, Identifiable {
         var dict: [String: Any] = [
             "userId": userId,
             "drinkType": drinkType,
+            "size": size,
+            "milk": milk,
+            "flavor": flavor,
+            "isIced": isIced,
+            "price": price,
             "location": location,
             "paymentMethod": paymentMethod,
             "status": status,

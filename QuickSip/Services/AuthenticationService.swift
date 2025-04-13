@@ -35,23 +35,86 @@ class AuthenticationService: ObservableObject {
         }
     }
     
-    private func setupAuthStateListener() {
+    /// Sets up the Firebase Auth state listener to track authentication state changes
+    /// This should be called early in the app lifecycle
+    func setupAuthStateListener() {
         // Ensure we remove any existing listener before adding a new one
         if let handle = authStateListener {
             Auth.auth().removeStateDidChangeListener(handle)
         }
         
+        print("[AUTH] Setting up auth state listener...")
+        
         // Listen for authentication state changes
         authStateListener = Auth.auth().addStateDidChangeListener { [weak self] (_, user) in
             DispatchQueue.main.async {
+                print("[AUTH STATE LISTENER] Listener fired.")
+                
+                let wasAuthenticated = self?.isAuthenticated ?? false
                 self?.user = user
                 self?.isAuthenticated = user != nil
                 
+                // Log authentication state change
+                if wasAuthenticated != (user != nil) {
+                    print("[AUTH STATE LISTENER] Authentication state changed: \(wasAuthenticated) -> \(user != nil)")
+                }
+                
                 if user != nil {
-                    // User is authenticated, log status for debugging
-                    print("User is authenticated: \(user?.uid ?? "unknown")")
+                    print("[AUTH STATE LISTENER] User IS authenticated: \(user?.uid ?? "unknown")")
+                    print("[AUTH STATE LISTENER] Auth Provider: \(user?.providerData.first?.providerID ?? "unknown")")
+                    print("[AUTH STATE LISTENER] Email: \(user?.email ?? "none")")
                 } else {
-                    print("No authenticated user")
+                    print("[AUTH STATE LISTENER] User is NOT authenticated.")
+                }
+            }
+        }
+    }
+    
+    /// Attempt to restore any existing authentication session
+    func restoreAuthSession() {
+        print("[AUTH] restoreAuthSession called")
+        
+        // Ensure auth state listener is set up (this does the heavy lifting)
+        setupAuthStateListener()
+        
+        // Check if we already have a Firebase user
+        if let currentUser = Auth.auth().currentUser {
+            print("[AUTH] Firebase session already exists for user: \(currentUser.uid)")
+            return
+        }
+        
+        print("[AUTH] No active Firebase session, attempting to restore Google Sign-In")
+        
+        // Try to restore Google Sign-In session
+        GIDSignIn.sharedInstance.restorePreviousSignIn { [weak self] user, error in
+            if let error = error {
+                print("[AUTH] Failed to restore Google Sign-In: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let user = user,
+                  let idToken = user.idToken?.tokenString else {
+                print("[AUTH] No previous Google Sign-In session found")
+                return
+            }
+            
+            print("[AUTH] Found previous Google Sign-In, creating Firebase credential")
+            
+            // Create Firebase credential from the restored Google Sign-In
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: idToken,
+                accessToken: user.accessToken.tokenString
+            )
+            
+            // Sign in to Firebase with the credential
+            Auth.auth().signIn(with: credential) { authResult, error in
+                if let error = error {
+                    print("[AUTH] Failed to sign in to Firebase with restored Google credential: \(error.localizedDescription)")
+                    return
+                }
+                
+                if let authResult = authResult {
+                    print("[AUTH] Successfully restored Firebase session from Google Sign-In for user: \(authResult.user.uid)")
                 }
             }
         }

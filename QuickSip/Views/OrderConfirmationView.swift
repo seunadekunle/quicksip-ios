@@ -10,10 +10,50 @@ import SwiftUI
 struct OrderConfirmationView: View {
     // Dependencies
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
+    @Environment(\.presentationMode) private var presentationMode
+    
+    // For dismissing to root view
+    @Environment(\.dismiss) private var dismiss
+    
+    // StatusUpdateService for real-time updates
+    @StateObject private var statusService = StatusUpdateService.shared
     
     // Properties
     let order: Order
-    @State private var showHome = false
+    
+    // UI state
+    @State private var rootPresentationMode: Binding<PresentationMode>? = nil
+    @State private var hasDismissed = false
+    @State private var showingConnectionAlert = false
+    
+    // Computed properties for UI
+    private var displayStatus: String {
+        // Use the real-time status if available, otherwise fall back to the initial order status
+        return statusService.currentOrderStatus?.capitalized ?? order.status.capitalized
+    }
+    
+    private var statusColor: Color {
+        switch displayStatus.lowercased() {
+        case "placed":
+            return .orange
+        case "in progress":
+            return .blue
+        case "delivered":
+            return .green
+        case "cancelled":
+            return .red
+        default:
+            return .gray
+        }
+    }
+    
+    private var lastUpdatedText: String? {
+        guard let lastUpdated = statusService.lastUpdated else { return nil }
+        
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return "Updated \(formatter.localizedString(for: lastUpdated, relativeTo: Date()))"
+    }
     
     var body: some View {
         ScrollView {
@@ -37,6 +77,20 @@ struct OrderConfirmationView: View {
                     .font(.headline)
                     .foregroundColor(AppColors.textSecondary)
                 
+                // Real-time status indicator
+                if !statusService.isConnected {
+                    HStack {
+                        Image(systemName: "wifi.slash")
+                        Text("Offline - Status updates unavailable")
+                            .font(.footnote)
+                    }
+                    .foregroundColor(.red)
+                    .padding(.vertical, 5)
+                    .onTapGesture {
+                        showingConnectionAlert = true
+                    }
+                }
+                
                 // Order details card
                 VStack(alignment: .leading, spacing: 15) {
                     // Order details header
@@ -58,7 +112,7 @@ struct OrderConfirmationView: View {
                     
                     // Location
                     HStack {
-                        Text("Location")
+                        Text("Location (Universtiy of Southern California)")
                             .foregroundColor(AppColors.textSecondary)
                         Spacer()
                         Text(order.location)
@@ -76,14 +130,23 @@ struct OrderConfirmationView: View {
                             .foregroundColor(AppColors.textPrimary)
                     }
                     
-                    // Order status
+                    // Order status with real-time updates
                     HStack {
                         Text("Status")
                             .foregroundColor(AppColors.textSecondary)
                         Spacer()
-                        Text(order.status.capitalized)
+                        Text(displayStatus)
                             .fontWeight(.semibold)
-                            .foregroundColor(.green)
+                            .foregroundColor(statusColor)
+                            .animation(.easeInOut, value: displayStatus)
+                    }
+                    
+                    // Show last update time if available
+                    if let lastUpdatedText = lastUpdatedText {
+                        Text(lastUpdatedText)
+                            .font(.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
                     }
                     
                     // Additional requests (if any)
@@ -103,22 +166,30 @@ struct OrderConfirmationView: View {
                 .cornerRadius(15)
                 .padding(.horizontal)
                 
-                // Estimated time
+                // Estimated time with dynamic calculation based on status
                 VStack {
                     Text("Estimated Time")
                         .font(.headline)
                         .foregroundColor(AppColors.textPrimary)
                     
-                    Text("10-15 minutes")
+                    Text(estimatedTimeText)
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(AppColors.primary)
+                        .animation(.easeInOut, value: displayStatus)
                 }
                 .padding(.vertical)
                 
                 // Return to Home button
                 Button(action: {
-                    showHome = true
+                    // Only try to dismiss once
+                    if !hasDismissed {
+                        hasDismissed = true
+                        // Clean up listeners before dismissing
+                        statusService.stopListeningForOrderUpdates(orderId: order.id)
+                        // Dismiss all the way back to root view
+                        dismissToRoot()
+                    }
                 }) {
                     Text("Return to Home")
                         .font(.headline)
@@ -128,6 +199,7 @@ struct OrderConfirmationView: View {
                         .background(AppColors.primary)
                         .cornerRadius(15)
                 }
+                .buttonStyle(PlainButtonStyle()) // Use plain button style
                 .padding(.horizontal)
                 .padding(.top, 20)
                 .padding(.bottom, 40)
@@ -138,12 +210,63 @@ struct OrderConfirmationView: View {
             .navigationTitle("Order Confirmation")
             .navigationBarBackButtonHidden(true)
             .navigationBarTitleDisplayMode(.inline)
-        }
-        .background(
-            NavigationLink(destination: HomeView(), isActive: $showHome) {
-                EmptyView()
+            .alert(isPresented: $showingConnectionAlert) {
+                Alert(
+                    title: Text("Connection Issue"),
+                    message: Text("Unable to get real-time status updates. The last known status is shown."),
+                    primaryButton: .default(Text("Retry")) {
+                        statusService.startListeningForOrderUpdates(orderId: order.id)
+                    },
+                    secondaryButton: .cancel()
+                )
             }
-        )
+            .onAppear {
+                // Start listening for status updates when the view appears
+                statusService.startListeningForOrderUpdates(orderId: order.id)
+            }
+            .onDisappear {
+                // Stop listening when the view disappears
+                statusService.stopListeningForOrderUpdates(orderId: order.id)
+            }
+        }
+    }
+    
+    // Dynamic estimated time based on status
+    private var estimatedTimeText: String {
+        switch displayStatus.lowercased() {
+        case "placed":
+            return "10-15 minutes"
+        case "in progress":
+            return "5-7 minutes"
+        case "delivered":
+            return "Ready for pickup!"
+        case "cancelled":
+            return "Order cancelled"
+        default:
+            return "Processing..."
+        }
+    }
+    
+    // Function to dismiss all the way back to the home view
+    private func dismissToRoot() {
+        // First dismiss the current view
+        dismiss()
+        
+        // Add a small delay to ensure the current view starts dismissing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Post a notification to dismiss all presentations with context info
+            NotificationCenter.default.post(
+                name: Notification.Name("DismissToRootView"),
+                object: nil,
+                userInfo: ["source": "OrderConfirmation", "force": true]
+            )
+            
+            // Additional fallback using a longer delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                // Try to dismiss presentation mode as well
+                self.presentationMode.wrappedValue.dismiss()
+            }
+        }
     }
 }
 

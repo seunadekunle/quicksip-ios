@@ -9,28 +9,41 @@ import SwiftUI
 
 struct LoginView: View {
     @EnvironmentObject var viewModel: AuthenticationViewModel
-    @State private var showHomeView = false
     
     var body: some View {
-        NavigationStack {
+        ZStack {
+            // Matcha-inspired background
+            LinearGradient(
+                gradient: Gradient(colors: [AppColors.background, AppColors.matchaLight]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .edgesIgnoringSafeArea(.all)
+            
             VStack(spacing: 30) {
                 Spacer()
-                // Logo
-                Image(systemName: "cup.and.saucer.fill")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 80, height: 80)
-                    .foregroundColor(AppColors.primary)
-                    .accessibilityLabel("QuickSip App Logo")
                 
-                Text("QuickSip")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(AppColors.primary)
-                
-                Text("Welcome to QuickSip")
-                    .font(.title3)
-                    .fontWeight(.medium)
-                    .padding(.top, 10) 
+                // Matcha themed logo styling
+                VStack(spacing: 15) {
+                    ZStack {
+                        Circle()
+                            .fill(AppColors.matchaLight)
+                            .frame(width: 100, height: 100)
+                            .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 2)
+                        
+                        Image(systemName: "cup.and.saucer.fill")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 60, height: 60)
+                            .foregroundColor(AppColors.primary)
+                            .accessibilityLabel("QuickSip App Logo")
+                    }
+                    
+                    Text("QuickSip")
+                        .font(.system(size: 32, weight: .heavy))
+                        .foregroundColor(AppColors.matchaDark)
+                }
+                .padding(.bottom, 30)
                 
                 // Error Message
                 if let errorMessage = viewModel.errorMessage {
@@ -39,9 +52,14 @@ struct LoginView: View {
                         .font(.caption)
                         .padding(.horizontal)
                         .multilineTextAlignment(.center)
+                        .padding(.vertical, 5)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(Color.red.opacity(0.1))
+                        )
                 }
                 
-                // Google Sign In Button
+                // Google Sign In Button with matcha styling
                 Button(action: {
                     viewModel.signInWithGoogle { success in
                         if !success {
@@ -49,60 +67,80 @@ struct LoginView: View {
                         }
                     }
                 }) {
-                    HStack {
-                        Image(systemName: "g.circle.fill") // Using SFSymbol as placeholder
+                    HStack(spacing: 15) {
+                        Image(systemName: "g.circle.fill")
+                            .font(.system(size: 22))
                             .foregroundColor(.primary)
                         
                         Text("Sign in with Google")
-                            .font(.headline)
-                            .foregroundColor(.primary)
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(AppColors.textPrimary)
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                    .frame(height: 55)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.white)
                     )
-                    .padding(.horizontal)
+                    .padding(.horizontal, 30)
                 }
                 .disabled(viewModel.isLoading)
-                .padding(.bottom, 50)
+                .padding(.bottom, 30)
+                
+                // Added: Matcha themed decoration
+                HStack(spacing: 25) {
+                    matchaDecoration
+                    matchaDecoration
+                    matchaDecoration
+                }
+                .padding(.bottom, 40)
                 
                 Spacer()
                 
-                // Navigation link that activates when authentication is successful
-                NavigationLink(destination: HomeView(), isActive: $viewModel.navigateToHome) {
-                    EmptyView()
-                }
+                // Matcha quote
+                Text("\"Matcha: calm energy in every sip\"")
+                    .font(.system(size: 18, weight: .medium, design: .serif))
+                    .italic()
+                    .foregroundColor(AppColors.matchaDark)
+                    .padding(.bottom, 20)
             }
             .padding()
-            .background(AppColors.background)
-            .edgesIgnoringSafeArea(.all)
-            .overlay(
-                ZStack {
-                    if viewModel.isLoading {
-                        Color.black.opacity(0.4)
-                            .edgesIgnoringSafeArea(.all)
-                        
-                        VStack {
-                            ProgressView()
-                                .scaleEffect(1.5)
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            
-                            Text("Loading...")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding(.top, 10)
-                        }
-                        .padding(20)
-                        .background(Color.black.opacity(0.7))
-                        .cornerRadius(10)
-                    }
+            
+            // Loading overlay
+            if viewModel.isLoading {
+                Color.black.opacity(0.4)
+                    .edgesIgnoringSafeArea(.all)
+                
+                VStack {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    
+                    Text("Preparing...")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.top, 10)
                 }
-            )
+                .padding(20)
+                .background(
+                    RoundedRectangle(cornerRadius: 15)
+                        .fill(Color.black.opacity(0.7))
+                )
+            }
         }
+    }
+    
+    // Matcha leaf decoration
+    private var matchaDecoration: some View {
+        Image(systemName: "leaf.fill")
+            .font(.system(size: 14))
+            .foregroundColor(AppColors.primary)
+            .padding(8)
+            .background(
+                Circle()
+                    .fill(AppColors.matchaLight)
+                    .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
+            )
     }
 }
 

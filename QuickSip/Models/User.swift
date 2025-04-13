@@ -15,11 +15,11 @@ struct User: Codable, Identifiable {
     let orderHistory: [Order]
     
     // Convenience initializer for creating a new user
-    init(id: String, name: String, email: String) {
+    init(id: String, name: String, email: String, orderHistory: [Order] = []) {
         self.id = id
         self.name = name
         self.email = email
-        self.orderHistory = []
+        self.orderHistory = orderHistory
     }
     
     // Firestore conversion
@@ -39,31 +39,38 @@ struct User: Codable, Identifiable {
             var orders: [Order] = []
             
             for orderData in orderHistoryData {
-                if let orderDict = orderData as? [String: Any],
-                   let id = orderDict["id"] as? String,
-                   let userId = orderDict["userId"] as? String,
-                   let drinkType = orderDict["drinkType"] as? String,
-                   let location = orderDict["location"] as? String,
-                   let paymentMethod = orderDict["paymentMethod"] as? String,
-                   let status = orderDict["status"] as? String,
-                   let timestamp = orderDict["timestamp"] as? Timestamp {
+                if let id = orderData["id"] as? String,
+                   let userId = orderData["userId"] as? String,
+                   let drinkType = orderData["drinkType"] as? String,
+                   let location = orderData["location"] as? String,
+                   let paymentMethod = orderData["paymentMethod"] as? String,
+                   let status = orderData["status"] as? String,
+                   let timestamp = orderData["timestamp"] as? Timestamp {
+                    
+                    let size = orderData["size"] as? String ?? "Medium"
+                    let milk = orderData["milk"] as? String ?? ""
+                    let flavor = orderData["flavor"] as? String ?? ""
+                    let isIced = orderData["isIced"] as? Bool ?? true
+                    let price = orderData["price"] as? Double ?? 4.99
                     
                     let order = Order(
-                        id: id,
                         userId: userId,
                         drinkType: drinkType,
+                        size: size,
+                        milk: milk,
+                        flavor: flavor,
+                        isIced: isIced,
+                        price: price,
                         location: location,
                         paymentMethod: paymentMethod,
-                        additionalRequests: orderDict["additionalRequests"] as? String,
-                        status: status,
-                        timestamp: timestamp.dateValue()
+                        additionalRequests: orderData["additionalRequests"] as? String
                     )
                     
                     orders.append(order)
                 }
             }
             
-            self.orderHistory = orders
+            self.orderHistory = orders.sorted(by: { $0.timestamp > $1.timestamp }) // Sort by newest first
         } else {
             self.orderHistory = []
         }
@@ -87,7 +94,37 @@ struct User: Codable, Identifiable {
         return User(
             id: self.id,
             name: self.name,
-            email: self.email
+            email: self.email,
+            orderHistory: updatedOrderHistory
+        )
+    }
+    
+    // Update orders with cloud data
+    func updatingOrders(_ orders: [Order]) -> User {
+        // Create a dictionary of existing orders by ID for quick lookup
+        let existingOrdersDict = Dictionary(uniqueKeysWithValues: self.orderHistory.map { ($0.id, $0) })
+        
+        // Merge new orders with existing ones, preserving local data if not updated in cloud
+        var updatedOrders = orders.map { cloudOrder -> Order in
+            if let existingOrder = existingOrdersDict[cloudOrder.id] {
+                // If order exists locally and cloud status is not newer, keep local version
+                if let cloudTimestamp = cloudOrder.timestamp as? Timestamp,
+                   let localTimestamp = existingOrder.timestamp as? Timestamp,
+                   cloudTimestamp.seconds <= localTimestamp.seconds {
+                    return existingOrder
+                }
+            }
+            return cloudOrder
+        }
+        
+        // Sort by newest first
+        updatedOrders.sort(by: { $0.timestamp > $1.timestamp })
+        
+        return User(
+            id: self.id,
+            name: self.name,
+            email: self.email,
+            orderHistory: updatedOrders
         )
     }
 } 

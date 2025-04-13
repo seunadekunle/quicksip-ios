@@ -12,6 +12,7 @@ struct OrderFormView: View {
     // Dependencies
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @StateObject private var orderViewModel = OrderViewModel()
+    @Environment(\.presentationMode) private var presentationMode
     
     // Input from previous screen
     let selectedDrink: DrinkType
@@ -26,6 +27,7 @@ struct OrderFormView: View {
     // Form State
     @State private var showingErrors = false
     @State private var showingOrderConfirmation = false
+    @State private var showSuccessAnimation = false
     @FocusState private var focusedField: FormField?
     
     // Helpers for form handling and validation
@@ -61,13 +63,17 @@ struct OrderFormView: View {
     
     // Validation logic
     var formIsValid: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmedName.isEmpty && trimmedName.count >= 2
     }
     
     // Form validation errors
     var nameError: String? {
-        if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && showingErrors {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedName.isEmpty && showingErrors {
             return "Name is required"
+        } else if trimmedName.count < 2 && showingErrors {
+            return "Name must be at least 2 characters"
         }
         return nil
     }
@@ -98,7 +104,8 @@ struct OrderFormView: View {
                     Spacer()
                     
                     Button(action: {
-                        // Go back to drink selection
+                        // Dismiss this view to go back to drink selection
+                        self.presentationMode.wrappedValue.dismiss()
                     }) {
                         Text("Change")
                             .font(.subheadline)
@@ -123,6 +130,10 @@ struct OrderFormView: View {
                             .cornerRadius(10)
                             .focused($focusedField, equals: .name)
                             .submitLabel(.next)
+                            .onSubmit {
+                                // Move to additional requests field when user hits "next" on keyboard
+                                focusedField = .additionalRequests
+                            }
                             .onChange(of: name) { _ in
                                 if !name.isEmpty && showingErrors {
                                     showingErrors = false
@@ -140,7 +151,7 @@ struct OrderFormView: View {
                     
                     // Location Field
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Location")
+                        Text("Location (University of Southern California)")
                             .font(.headline)
                             .foregroundColor(AppColors.textPrimary)
                         
@@ -219,6 +230,12 @@ struct OrderFormView: View {
                             .background(AppColors.secondaryBackground)
                             .cornerRadius(10)
                             .focused($focusedField, equals: .additionalRequests)
+                            .onSubmit {
+                                // Submit the form if it's valid
+                                if formIsValid {
+                                    submitOrder()
+                                }
+                            }
                     }
                 }
                 
@@ -227,22 +244,44 @@ struct OrderFormView: View {
                     submitOrder()
                 }) {
                     HStack {
-                        Text("Submit Order")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        
-                        if orderViewModel.isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .padding(.leading, 5)
+                        if showSuccessAnimation {
+                            // Success checkmark
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.trailing, 5)
+                            
+                            Text("Order Submitted!")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        } else {
+                            Text("Submit Order")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            if orderViewModel.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .padding(.leading, 5)
+                            }
                         }
                     }
                     .frame(height: 55)
                     .frame(maxWidth: .infinity)
-                    .background(formIsValid ? AppColors.primary : AppColors.primary.opacity(0.5))
+                    .background(
+                        Group {
+                            if showSuccessAnimation {
+                                Color.green
+                            } else if formIsValid {
+                                AppColors.primary
+                            } else {
+                                AppColors.primary.opacity(0.5)
+                            }
+                        }
+                    )
                     .cornerRadius(15)
                 }
-                .disabled(!formIsValid || orderViewModel.isLoading)
+                .disabled(!formIsValid || orderViewModel.isLoading || showSuccessAnimation)
                 .padding(.top, 10)
                 .accessibilityHint(formIsValid ? "Submit your order" : "Please fill out all required fields")
                 
@@ -254,6 +293,26 @@ struct OrderFormView: View {
                         .padding()
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.red.opacity(0.1))
+                        )
+                        .padding(.vertical, 5)
+                }
+                
+                // Form validation error (shown when trying to submit with invalid data)
+                if showingErrors && !formIsValid {
+                    Text("Please fill out all required fields")
+                        .foregroundColor(.orange)
+                        .font(.footnote)
+                        .padding()
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.orange.opacity(0.1))
+                        )
+                        .padding(.vertical, 5)
                 }
                 
                 Spacer(minLength: 20)
@@ -273,14 +332,30 @@ struct OrderFormView: View {
                 }
             }
         }
-        .onChange(of: focusedField) { newValue in
-            // Handle keyboard next button
-            if newValue == .name {
-                // Focus on additional requests next since location is now a picker
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    focusedField = .additionalRequests
+        .onAppear {
+            // Set up notification observer to dismiss view when requested
+            NotificationCenter.default.addObserver(
+                forName: Notification.Name("DismissToRootView"),
+                object: nil,
+                queue: .main) { notification in
+                    // Check if the notification was from the OrderConfirmation view
+                    let shouldForce = (notification.userInfo?["force"] as? Bool) ?? false
+                    let source = (notification.userInfo?["source"] as? String) ?? ""
+                    
+                    // If forced or from OrderConfirmation, dismiss this view
+                    if shouldForce || source == "OrderConfirmation" {
+                        // Dismiss this view when the notification is received
+                        self.presentationMode.wrappedValue.dismiss()
+                    }
                 }
-            }
+        }
+        .onDisappear {
+            // Remove notification observer
+            NotificationCenter.default.removeObserver(
+                self,
+                name: Notification.Name("DismissToRootView"),
+                object: nil
+            )
         }
         // Navigation to confirmation screen
         NavigationLink(
@@ -315,10 +390,24 @@ struct OrderFormView: View {
         )
         
         // Navigate to confirmation screen when order is created successfully
-        // This will happen automatically when the orderViewModel.order is set
+        // Adding a success animation before navigation
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             if orderViewModel.order != nil && orderViewModel.errorMessage == nil {
-                showingOrderConfirmation = true
+                // Show success animation
+                withAnimation(.spring()) {
+                    showSuccessAnimation = true
+                }
+                
+                // Add haptic feedback for success
+                let generator = UINotificationFeedbackGenerator()
+                generator.notificationOccurred(.success)
+                
+                // Delay navigation to show the animation
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    withAnimation {
+                        showingOrderConfirmation = true
+                    }
+                }
             }
         }
     }

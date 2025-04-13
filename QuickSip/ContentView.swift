@@ -25,8 +25,7 @@ struct ContentView: View {
                     }
                     
                     NavigationStack {
-                        Text("Orders")
-                            .navigationTitle("Your Orders")
+                        OrdersView()
                     }
                     .tabItem {
                         Label("Orders", systemImage: "list.bullet")
