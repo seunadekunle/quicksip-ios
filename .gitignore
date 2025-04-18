@@ -27,3 +27,13 @@ node_modules/
 # Task files
 tasks.json
 tasks/ 
+
+# Google Service Info
+GoogleService-Info.plist
+
+# Package lock
+package-lock.json
+package.json
+
+# Build folder
+build/
