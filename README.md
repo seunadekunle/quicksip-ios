@@ -2,4 +2,4 @@
 
 Localized coffee delivery for college students. Built for USC Techstars startup weekend
 
-![QuickSip Demo GIF](https://raw.githubusercontent.com/seunadekunle/quicksip-ios/main/quicksip.gif) 
+<img src="https://raw.githubusercontent.com/seunadekunle/quicksip-ios/main/quicksip.gif" alt="QuickSip Demo GIF" width="250"/> 
